@@ -1,0 +1,12 @@
+{
+  "name": "Vincent",
+  "since": "2023-01-01",
+  "ftp": 307,
+  "weight": 82,
+  "manual": {
+    "category": "B",
+    "races": 410,
+    "racing_score": 546,
+    "note": "Handmatig overgenomen uit ZwiftPower; pas aan wanneer je wilt."
+  }
+}
