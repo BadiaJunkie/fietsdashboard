@@ -1,0 +1,63 @@
+name: Dashboard bijwerken
+
+on:
+  schedule:
+    # elke 3 uur; de eerste dag haalt dit je hele vermogensarchief binnen,
+    # daarna kost een run maar een paar verzoeken aan Strava
+    - cron: "17 */3 * * *"
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: ["site/**", "scripts/**", "config.json"]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: dashboard
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Strava ophalen
+        env:
+          STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
+          STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
+          STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
+        run: python scripts/fetch_strava.py
+
+      - name: Cijfers berekenen
+        run: python scripts/build_data.py
+
+      - name: Cache bewaren
+        run: |
+          git config user.name "dashboard-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "Strava-data bijgewerkt" && git push
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: update
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
