@@ -94,6 +94,11 @@ header.hero{border-bottom:0;padding-bottom:0;gap:0}
 .kind i{width:8px;height:8px;border-radius:2px;display:inline-block}
 #rides td.rname{font-family:var(--f-body);text-align:left;max-width:320px;overflow:hidden;text-overflow:ellipsis}
 #rides th:nth-child(2),#rides th:nth-child(3){text-align:left}#rides td:nth-child(3){text-align:left}
+a.act{color:inherit;text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}
+a.act:hover{color:var(--accent);border-bottom-color:var(--accent)}
+a.act:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+a.act .ext{font-size:.75em;margin-left:4px;color:var(--ink-3)}
+a.act:hover .ext{color:var(--accent)}
 /* now */
 .now{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
 .tile{background:var(--panel);padding:16px 18px;display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -169,7 +174,7 @@ tr.cur td{background:color-mix(in srgb,var(--accent) 8%,transparent)}
 </header>
 
 <section aria-labelledby="h-rides">
-  <div class="sec-head"><span class="eyebrow">Je laatste 150 ritten, nieuwste eerst</span><h2 id="h-rides">Ritten</h2></div>
+  <div class="sec-head"><span class="eyebrow">Je laatste 150 ritten, nieuwste eerst · klik op een rit voor Strava</span><h2 id="h-rides">Ritten</h2></div>
   <div class="controls">
     <div class="seg" role="group" aria-label="Soort rit"><button type="button" id="f-all" data-f="all" aria-pressed="true">Alle ritten</button><button type="button" id="f-race" data-f="race" aria-pressed="false">Races</button><button type="button" id="f-ride" data-f="ride" aria-pressed="false">Gewone ritten</button></div>
     <span class="muted" style="font-size:.85rem" id="ridesNote"></span>
@@ -282,6 +287,7 @@ function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const
 function txt(parent,attrs,s){const t=el('text',attrs,parent);t.textContent=s;return t}
 function niceMax(v,step){return Math.max(step,Math.ceil(v/step)*step)}
 function seg(attr,cb){document.querySelectorAll(`[data-${attr}]`).forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll(`[data-${attr}]`).forEach(x=>x.setAttribute('aria-pressed',x===b));cb(b.dataset[attr])}))}
+const strava=(id,label)=>id?`<a class="act" href="https://www.strava.com/activities/${encodeURIComponent(id)}" target="_blank" rel="noopener" title="Bekijk op Strava">${label}<span class="ext" aria-hidden="true">↗</span></a>`:label;
 const DUR={"5":"5 s","15":"15 s","30":"30 s","60":"1 min","300":"5 min","1200":"20 min","3600":"60 min"};
 
 function start(D){
@@ -340,7 +346,7 @@ function drawRides(){
   const vis=sel.slice(0,rshow);
   const KIND={binnen:['Binnen','--indoor'],weg:['Weg','--road'],gravel:['Gravel','--gravel']};
   $('#ridesNote').textContent=`${sel.length} ${rf==='race'?'races':'ritten'} · ${vis.length} getoond`;
-  $('#rides').innerHTML=`<thead><tr><th>Datum</th><th>Rit</th><th>Soort</th><th>Km</th><th>Tijd</th><th>Hm</th><th>Gem. W</th><th>NP</th><th>W/kg</th><th>Belasting</th><th>Hartslag</th></tr></thead><tbody>${vis.length?vis.map(r=>{const [lab,c]=KIND[r.k]||KIND.weg;return `<tr><td>${dlabel(r.d)}</td><td class="rname" title="${esc(r.name)}">${r.cat?`<span class="plate ${r.cat}" style="margin-right:6px">${r.cat}</span>`:''}${esc(r.name)||'–'}</td><td><span class="kind"><i style="background:var(${c})"></i>${r.race?'Race':lab}</span></td><td>${c1(r.km)}</td><td>${hm(r.min)}</td><td>${fmt(r.el)}</td><td>${r.avg??'–'}</td><td>${r.np?`<span class="np">${r.np}</span>`:'<span class="cold">–</span>'}</td><td>${r.avg?c1(r.avg/KG,2):'–'}</td><td>${r.tss}</td><td>${r.hr??'–'}</td></tr>`}).join(''):'<tr><td colspan="11" class="muted">Geen ritten in deze selectie.</td></tr>'}</tbody>`;
+  $('#rides').innerHTML=`<thead><tr><th>Datum</th><th>Rit</th><th>Soort</th><th>Km</th><th>Tijd</th><th>Hm</th><th>Gem. W</th><th>NP</th><th>W/kg</th><th>Belasting</th><th>Hartslag</th></tr></thead><tbody>${vis.length?vis.map(r=>{const [lab,c]=KIND[r.k]||KIND.weg;return `<tr><td>${dlabel(r.d)}</td><td class="rname" title="${esc(r.name)}">${r.cat?`<span class="plate ${r.cat}" style="margin-right:6px">${r.cat}</span>`:''}${strava(r.id,esc(r.name)||'–')}</td><td><span class="kind"><i style="background:var(${c})"></i>${r.race?'Race':lab}</span></td><td>${c1(r.km)}</td><td>${hm(r.min)}</td><td>${fmt(r.el)}</td><td>${r.avg??'–'}</td><td>${r.np?`<span class="np">${r.np}</span>`:'<span class="cold">–</span>'}</td><td>${r.avg?c1(r.avg/KG,2):'–'}</td><td>${r.tss}</td><td>${r.hr??'–'}</td></tr>`}).join(''):'<tr><td colspan="11" class="muted">Geen ritten in deze selectie.</td></tr>'}</tbody>`;
   $('#ridesMore').hidden=sel.length<=rshow;
 }
 seg('f',v=>{rf=v;rshow=20;drawRides()});
@@ -355,7 +361,7 @@ function drawRaces(){
   const v=w=>w?(unit==='wkg'?c1(w/KG):Math.round(w)):'<span class="cold">–</span>';
   $('#raceNote').textContent=`${R.length} recente races · W/kg bij ${KG} kg · vet = beste in deze lijst`;
   let h=`<thead><tr><th>Datum</th><th>Klasse</th><th>Race</th><th>Gem.</th><th>NP</th>${ks.map(k=>`<th>${DUR[k]}</th>`).join('')}<th>Hartslag</th><th>Km</th></tr></thead><tbody>`;
-  R.forEach(r=>{h+=`<tr><td>${dlabel(r.d)}</td><td>${r.cat?`<span class="plate ${r.cat}">${r.cat}</span>`:'<span class="cold">–</span>'}</td><td class="rname" title="${esc(r.name)}">${esc(r.name)}</td><td>${v(r.avg)} <span class="muted">${unit==='wkg'?'W/kg':'W'}</span></td><td>${r.np?`<span class="np">${r.np} W</span>`:'<span class="cold">–</span>'}</td>${ks.map((k,j)=>`<td class="${r.best[k]&&r.best[k]===best[j]?'hot':''}">${v(r.best[k])}</td>`).join('')}<td>${r.hr?r.hr+(r.hrm?' / '+r.hrm:''):'–'}</td><td>${c1(r.km)}</td></tr>`});
+  R.forEach(r=>{h+=`<tr><td>${dlabel(r.d)}</td><td>${r.cat?`<span class="plate ${r.cat}">${r.cat}</span>`:'<span class="cold">–</span>'}</td><td class="rname" title="${esc(r.name)}">${strava(r.id,esc(r.name))}</td><td>${v(r.avg)} <span class="muted">${unit==='wkg'?'W/kg':'W'}</span></td><td>${r.np?`<span class="np">${r.np} W</span>`:'<span class="cold">–</span>'}</td>${ks.map((k,j)=>`<td class="${r.best[k]&&r.best[k]===best[j]?'hot':''}">${v(r.best[k])}</td>`).join('')}<td>${r.hr?r.hr+(r.hrm?' / '+r.hrm:''):'–'}</td><td>${c1(r.km)}</td></tr>`});
   $('#races').innerHTML=h+'</tbody>';
 }
 seg('u',v=>{unit=v;drawRaces()});
@@ -455,7 +461,7 @@ function drawPW(){
 }
 
 /* ---------- lange ritten ---------- */
-$('#long').innerHTML=`<thead><tr><th>Datum</th><th>Rit</th><th>Km</th><th>Hoogtemeters</th><th>Rijtijd</th><th>Km/u</th><th>Gem. W</th><th>Belasting</th></tr></thead><tbody>${[...D.events].sort((a,b)=>b.km-a.km).map(e=>`<tr><td>${dlabel(e.d)}</td><td class="name" style="text-align:left">${esc(e.name)||'–'}${e.t==='gravel'?' <span class="chip neutral" style="font-size:.7rem;padding:0 6px;color:var(--gravel)">gravel</span>':''}</td><td>${c1(e.km)}</td><td>${fmt(e.el)}</td><td>${hm(e.min)}</td><td>${c1(e.kmh)}</td><td>${e.pw??'–'}</td><td>${e.tss}</td></tr>`).join('')}</tbody>`;
+$('#long').innerHTML=`<thead><tr><th>Datum</th><th>Rit</th><th>Km</th><th>Hoogtemeters</th><th>Rijtijd</th><th>Km/u</th><th>Gem. W</th><th>Belasting</th></tr></thead><tbody>${[...D.events].sort((a,b)=>b.km-a.km).map(e=>`<tr><td>${dlabel(e.d)}</td><td class="name" style="text-align:left">${strava(e.id,esc(e.name)||'–')}${e.t==='gravel'?' <span class="chip neutral" style="font-size:.7rem;padding:0 6px;color:var(--gravel)">gravel</span>':''}</td><td>${c1(e.km)}</td><td>${fmt(e.el)}</td><td>${hm(e.min)}</td><td>${c1(e.kmh)}</td><td>${e.pw??'–'}</td><td>${e.tss}</td></tr>`).join('')}</tbody>`;
 
 function drawAll(){drawCurve();drawPMC();drawVol();drawPW()}
 drawAll();drawRides();drawRaces();drawYears();
