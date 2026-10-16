@@ -88,6 +88,12 @@ header.hero{border-bottom:0;padding-bottom:0;gap:0}
 .cold{color:var(--ink-3)}
 .dz{color:var(--good);font-size:.8rem}.dzm{color:var(--bad);font-size:.8rem}
 @media (max-width:820px){.hero{grid-template-columns:1fr}.hero .id{border-right:0;border-bottom:1px solid var(--hero-rule)}.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.more{font:inherit;font-size:.9rem;background:var(--panel);color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:8px 16px;cursor:pointer}
+.more:hover{border-color:var(--ink-3)}.more:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.kind{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-body);font-size:.82rem;color:var(--ink-2)}
+.kind i{width:8px;height:8px;border-radius:2px;display:inline-block}
+#rides td.rname{font-family:var(--f-body);text-align:left;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+#rides th:nth-child(2),#rides th:nth-child(3){text-align:left}#rides td:nth-child(3){text-align:left}
 /* now */
 .now{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
 .tile{background:var(--panel);padding:16px 18px;display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -162,6 +168,16 @@ tr.cur td{background:color-mix(in srgb,var(--accent) 8%,transparent)}
   </div>
 </header>
 
+<section aria-labelledby="h-rides">
+  <div class="sec-head"><span class="eyebrow">Je laatste 150 ritten, nieuwste eerst</span><h2 id="h-rides">Ritten</h2></div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Soort rit"><button type="button" id="f-all" data-f="all" aria-pressed="true">Alle ritten</button><button type="button" id="f-race" data-f="race" aria-pressed="false">Races</button><button type="button" id="f-ride" data-f="ride" aria-pressed="false">Gewone ritten</button></div>
+    <span class="muted" style="font-size:.85rem" id="ridesNote"></span>
+  </div>
+  <div class="panel tbl"><table id="rides"></table></div>
+  <div><button type="button" class="more" id="ridesMore" hidden>Toon meer ritten</button></div>
+</section>
+
 <section aria-labelledby="h-curve">
   <div class="sec-head"><span class="eyebrow">Binnen en buiten, gemeten met je vermogensmeter</span><h2 id="h-curve">Vermogenscurve</h2>
   <p class="lede">Je beste gemiddelde vermogen per duur. Ligt de lijn van de laatste 90 dagen boven die van dezelfde periode vorig jaar, dan ben je sterker geworden op die duur.</p></div>
@@ -233,7 +249,7 @@ tr.cur td{background:color-mix(in srgb,var(--accent) 8%,transparent)}
 </section>
 
 <section aria-labelledby="h-long">
-  <div class="sec-head"><span class="eyebrow">Buiten, 100 km of meer</span><h2 id="h-long">Lange ritten en toertochten</h2></div>
+  <div class="sec-head"><span class="eyebrow">Buiten, 100 km of meer</span><h2 id="h-long">Lange ritten en toertochten</h2><p class="lede">Gesorteerd op afstand, langste eerst.</p></div>
   <div class="panel tbl"><table id="long"></table></div>
 </section>
 
@@ -315,6 +331,20 @@ function drawCurve(){
   $('#curveTbl').innerHTML=`<thead><tr><th>Duur</th><th>Laatste 90 d</th><th>W/kg</th><th>Vorig jaar</th><th>Verschil</th><th>Rit</th></tr></thead><tbody>${ds.filter(d=>l9[d]).map(d=>{const a=l9[d],b=p9[d];const df=b?Math.round((a.w/b.w-1)*100):null;return `<tr><td>${DUR[d]}</td><td>${a.w} W</td><td>${c1(a.w/KG,2)}</td><td>${b?b.w+' W':'–'}</td><td class="${df==null?'':df>=0?'up':'down'}">${df==null?'–':(df>=0?'+':'')+df+'%'}</td><td class="name" style="text-align:left">${esc(a.name)} <span class="muted">${dlabel(a.date)}</span></td></tr>`}).join('')}</tbody>`;
 }
 seg('cu',v=>{cu=v;drawCurve()});
+
+/* ---------- rittenlijst ---------- */
+let rf='all',rshow=20;
+function drawRides(){
+  const all=D.recent||[];
+  const sel=all.filter(r=>rf==='all'||(rf==='race'?r.race:!r.race));
+  const vis=sel.slice(0,rshow);
+  const KIND={binnen:['Binnen','--indoor'],weg:['Weg','--road'],gravel:['Gravel','--gravel']};
+  $('#ridesNote').textContent=`${sel.length} ${rf==='race'?'races':'ritten'} · ${vis.length} getoond`;
+  $('#rides').innerHTML=`<thead><tr><th>Datum</th><th>Rit</th><th>Soort</th><th>Km</th><th>Tijd</th><th>Hm</th><th>Gem. W</th><th>NP</th><th>W/kg</th><th>Belasting</th><th>Hartslag</th></tr></thead><tbody>${vis.length?vis.map(r=>{const [lab,c]=KIND[r.k]||KIND.weg;return `<tr><td>${dlabel(r.d)}</td><td class="rname" title="${esc(r.name)}">${r.cat?`<span class="plate ${r.cat}" style="margin-right:6px">${r.cat}</span>`:''}${esc(r.name)||'–'}</td><td><span class="kind"><i style="background:var(${c})"></i>${r.race?'Race':lab}</span></td><td>${c1(r.km)}</td><td>${hm(r.min)}</td><td>${fmt(r.el)}</td><td>${r.avg??'–'}</td><td>${r.np?`<span class="np">${r.np}</span>`:'<span class="cold">–</span>'}</td><td>${r.avg?c1(r.avg/KG,2):'–'}</td><td>${r.tss}</td><td>${r.hr??'–'}</td></tr>`}).join(''):'<tr><td colspan="11" class="muted">Geen ritten in deze selectie.</td></tr>'}</tbody>`;
+  $('#ridesMore').hidden=sel.length<=rshow;
+}
+seg('f',v=>{rf=v;rshow=20;drawRides()});
+$('#ridesMore').addEventListener('click',()=>{rshow+=20;drawRides()});
 
 /* ---------- races ---------- */
 let unit='wkg';
@@ -425,10 +455,10 @@ function drawPW(){
 }
 
 /* ---------- lange ritten ---------- */
-$('#long').innerHTML=`<thead><tr><th>Datum</th><th>Rit</th><th>Km</th><th>Hoogtemeters</th><th>Rijtijd</th><th>Km/u</th><th>Gem. W</th><th>Belasting</th></tr></thead><tbody>${[...D.events].reverse().map(e=>`<tr><td>${dlabel(e.d)}</td><td class="name" style="text-align:left">${esc(e.name)||'–'}${e.t==='gravel'?' <span class="chip neutral" style="font-size:.7rem;padding:0 6px;color:var(--gravel)">gravel</span>':''}</td><td>${c1(e.km)}</td><td>${fmt(e.el)}</td><td>${hm(e.min)}</td><td>${c1(e.kmh)}</td><td>${e.pw??'–'}</td><td>${e.tss}</td></tr>`).join('')}</tbody>`;
+$('#long').innerHTML=`<thead><tr><th>Datum</th><th>Rit</th><th>Km</th><th>Hoogtemeters</th><th>Rijtijd</th><th>Km/u</th><th>Gem. W</th><th>Belasting</th></tr></thead><tbody>${[...D.events].sort((a,b)=>b.km-a.km).map(e=>`<tr><td>${dlabel(e.d)}</td><td class="name" style="text-align:left">${esc(e.name)||'–'}${e.t==='gravel'?' <span class="chip neutral" style="font-size:.7rem;padding:0 6px;color:var(--gravel)">gravel</span>':''}</td><td>${c1(e.km)}</td><td>${fmt(e.el)}</td><td>${hm(e.min)}</td><td>${c1(e.kmh)}</td><td>${e.pw??'–'}</td><td>${e.tss}</td></tr>`).join('')}</tbody>`;
 
 function drawAll(){drawCurve();drawPMC();drawVol();drawPW()}
-drawAll();drawRaces();drawYears();
+drawAll();drawRides();drawRaces();drawYears();
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawAll,150)});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
 new MutationObserver(drawAll).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
