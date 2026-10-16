@@ -170,6 +170,20 @@ def main():
         if len(races) >= 25:
             break
 
+    # recente ritten (alle soorten), voor de filterbare rittenlijst
+    recent = []
+    for r in reversed(rides[-150:]):
+        cat = re.search(r"\(([A-E])\)", r["name"])
+        name = re.sub(r"^Zwift\s*-\s*", "", r["name"]).strip()
+        recent.append(dict(
+            d=r["d"].isoformat(), name=name, k=r["k"],
+            race=bool(r["k"] == "binnen" and RACE_RE.search(r["name"])),
+            cat=cat.group(1) if cat else None, km=round(r["km"], 1), min=round(r["min"]),
+            el=round(r["el"]), avg=round(r["avg"]) if r["avg"] else None,
+            np=round(r["np"]) if r["np"] else None, tss=round(r["tss"]),
+            hr=round(r["hr"]) if r["hr"] else None,
+        ))
+
     # lange ritten buiten en terugkerende routes
     long_ = [dict(d=r["d"].isoformat(), name=r["name"], t=r["k"], km=round(r["km"], 1), el=round(r["el"]),
                   min=round(r["min"]), kmh=round(r["km"] / (r["min"] / 60), 1) if r["min"] else 0,
@@ -195,7 +209,7 @@ def main():
         generated=datetime.now().isoformat(timespec="minutes"), today=today.isoformat(),
         name=CONFIG["name"], ftp=FTP, weight=KG, manual=CONFIG.get("manual", {}), strava_athlete=athlete,
         nrides=len(rides), pmc=pmc, peaks=peaks, months=months, years=years,
-        l12m=agg(l12), p12m=agg(p12), power=power, qtrend=qtrend, races=races,
+        l12m=agg(l12), p12m=agg(p12), power=power, qtrend=qtrend, races=races, recent=recent,
         events=long_, classics=classics[:8],
         last_ride=rides[-1]["d"].isoformat() if rides else None,
     )
