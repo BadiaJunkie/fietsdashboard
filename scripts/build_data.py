@@ -162,7 +162,7 @@ def main():
             name = re.sub(r"^Zwift\s*-\s*", "", r["name"])
             name = re.sub(r"^(Race|TT):\s*", "", name)
             name = re.sub(r"\s*\([A-E]\)", "", name).strip()
-            races.append(dict(d=r["d"].isoformat(), cat=cat.group(1) if cat else None, name=name,
+            races.append(dict(id=r["id"], d=r["d"].isoformat(), cat=cat.group(1) if cat else None, name=name,
                               avg=round(r["avg"]), np=round(r["np"]) if r["np"] else None,
                               best={k: r["best"].get(k) for k in ["1200", "300", "60", "30", "15"]},
                               hr=round(r["hr"]) if r["hr"] else None, hrm=round(r["hrm"]) if r["hrm"] else None,
@@ -176,7 +176,7 @@ def main():
         cat = re.search(r"\(([A-E])\)", r["name"])
         name = re.sub(r"^Zwift\s*-\s*", "", r["name"]).strip()
         recent.append(dict(
-            d=r["d"].isoformat(), name=name, k=r["k"],
+            id=r["id"], d=r["d"].isoformat(), name=name, k=r["k"],
             race=bool(r["k"] == "binnen" and RACE_RE.search(r["name"])),
             cat=cat.group(1) if cat else None, km=round(r["km"], 1), min=round(r["min"]),
             el=round(r["el"]), avg=round(r["avg"]) if r["avg"] else None,
@@ -185,7 +185,7 @@ def main():
         ))
 
     # lange ritten buiten en terugkerende routes
-    long_ = [dict(d=r["d"].isoformat(), name=r["name"], t=r["k"], km=round(r["km"], 1), el=round(r["el"]),
+    long_ = [dict(id=r["id"], d=r["d"].isoformat(), name=r["name"], t=r["k"], km=round(r["km"], 1), el=round(r["el"]),
                   min=round(r["min"]), kmh=round(r["km"] / (r["min"] / 60), 1) if r["min"] else 0,
                   pw=round(r["avg"]) if r["meter"] else None, tss=round(r["tss"]))
              for r in rides if r["k"] != "binnen" and r["km"] >= 100]
