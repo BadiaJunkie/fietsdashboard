@@ -15,6 +15,7 @@
   --road:#2a78d6; --gravel:#eb6834; --indoor:#1baf7a;
   --ctl:#2a78d6; --atl:#eb6834; --tsb-pos:#1baf7a; --tsb-neg:#e34948;
   --hero:#0f1720; --hero-2:#16212d; --hero-ink:#eef3f7; --hero-ink-2:#9fb0c0; --hero-rule:#25323f; --hero-acc:#3fc1a8;
+ --zone1:#9ec5f4; --zone2:#2a78d6; --zone3:#eda100; --zone4:#eb6834; --zone5:#d9363e;
   --cat-a:#d9363e; --cat-b:#2f9a4c; --cat-c:#2a78d6; --cat-d:#d79a00;
   --good:#1a7f4b; --warn:#a86a00; --bad:#c23b3a;
   --f-display:"Saira Semi Condensed","Arial Narrow",system-ui,sans-serif;
@@ -26,13 +27,13 @@
   --rule:#2c3237; --grid:#252a2f; --accent:#6da7ec;
   --road:#3987e5; --gravel:#d95926; --indoor:#199e70;
   --ctl:#3987e5; --atl:#d95926; --tsb-pos:#199e70; --tsb-neg:#e66767;
-  --good:#3fbf7f; --warn:#e0a63a; --bad:#ef7473; color-scheme:dark}}
+  --good:#3fbf7f; --warn:#e0a63a; --bad:#ef7473; --zone1:#5f7fa6; --zone2:#3987e5; --zone3:#c98500; --zone4:#d95926; --zone5:#e66767; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#121518; --panel:#1a1e22; --ink:#f1f3f4; --ink-2:#b9c0c7; --ink-3:#8a939c;
   --rule:#2c3237; --grid:#252a2f; --accent:#6da7ec;
   --road:#3987e5; --gravel:#d95926; --indoor:#199e70;
   --ctl:#3987e5; --atl:#d95926; --tsb-pos:#199e70; --tsb-neg:#e66767;
-  --good:#3fbf7f; --warn:#e0a63a; --bad:#ef7473; color-scheme:dark}
+  --good:#3fbf7f; --warn:#e0a63a; --bad:#ef7473; --zone1:#5f7fa6; --zone2:#3987e5; --zone3:#c98500; --zone4:#d95926; --zone5:#e66767; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
 .wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:28px 64px;display:flex;flex-direction:column;gap:44px}
@@ -99,6 +100,9 @@ a.act:hover{color:var(--accent);border-bottom-color:var(--accent)}
 a.act:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
 a.act .ext{font-size:.75em;margin-left:4px;color:var(--ink-3)}
 a.act:hover .ext{color:var(--accent)}
+.te{display:inline-flex;gap:4px;align-items:baseline}
+.te b{font-weight:500}.te .a2{color:var(--ink-3);font-size:.85em}
+.te.hi b{color:var(--bad)}.te.mid b{color:var(--warn)}
 /* now */
 .now{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
 .tile{background:var(--panel);padding:16px 18px;display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -209,6 +213,20 @@ tr.cur td{background:color-mix(in srgb,var(--accent) 8%,transparent)}
   <p class="verdict" id="verdict"></p>
 </section>
 
+<section aria-labelledby="h-rec" id="secRec" hidden>
+  <div class="sec-head"><span class="eyebrow" id="recEyebrow">Garmin · Fenix 5X</span><h2 id="h-rec">Herstel</h2>
+  <p class="lede">Rusthartslag en slaap van de afgelopen 120 dagen. Een rusthartslag die een paar slagen boven je gemiddelde ligt, samen met korte nachten, is een signaal om het rustiger aan te doen.</p></div>
+  <div class="now" id="recTiles"></div>
+  <p class="verdict" id="recVerdict"></p>
+  <div class="panel" style="display:flex;flex-direction:column;gap:12px">
+    <div class="controls"><div class="legend"><span><i class="sw line" style="background:var(--bad)"></i>Rusthartslag</span><span><i class="sw line" style="background:var(--ink-3)"></i>7-daags gemiddelde</span></div></div>
+    <div class="chart" id="rhrChart"></div>
+    <div class="legend"><span><i class="sw" style="background:var(--road)"></i>Diepe slaap</span><span><i class="sw" style="background:var(--indoor)"></i>REM</span><span><i class="sw" style="background:var(--grid);outline:1px solid var(--rule)"></i>Lichte slaap</span></div>
+    <div class="chart" id="sleepChart"></div>
+    <p class="muted" style="font-size:.85rem" id="rhrLong"></p>
+  </div>
+</section>
+
 <section aria-labelledby="h-pmc">
   <div class="sec-head"><span class="eyebrow">Trainingsbelasting, dag voor dag</span><h2 id="h-pmc">Fitheid en vermoeidheid</h2>
   <p class="lede">Fitheid is je belasting over de laatste ±6 weken, vermoeidheid die van de laatste week. Ligt vermoeidheid ruim boven fitheid, dan train je hard; ligt ze eronder, dan ben je fris.</p></div>
@@ -220,6 +238,24 @@ tr.cur td{background:color-mix(in srgb,var(--accent) 8%,transparent)}
     <div class="chart" id="pmc"></div>
     <div class="legend"><span><i class="sw" style="background:var(--tsb-pos)"></i>Vorm positief (fris)</span><span><i class="sw" style="background:var(--tsb-neg)"></i>Vorm negatief (vermoeid)</span></div>
     <div class="chart" id="tsb"></div>
+  </div>
+</section>
+
+<section aria-labelledby="h-zones" id="secZones" hidden>
+  <div class="sec-head"><span class="eyebrow">Garmin · fietsactiviteiten, laatste 26 weken</span><h2 id="h-zones">Tijd per hartslagzone</h2>
+  <p class="lede" id="zonesLede">Uren per week in elke zone. Bij een opbouw met veel zone 2 hoort het blauwe deel groot te zijn en het middengebied (zone 3) klein.</p></div>
+  <div class="panel" style="display:flex;flex-direction:column;gap:12px">
+    <div class="legend" id="zoneLegend"></div>
+    <div class="chart" id="zoneChart"></div>
+  </div>
+</section>
+
+<section aria-labelledby="h-ef" id="secEf" hidden>
+  <div class="sec-head"><span class="eyebrow">Strava · rustige ritten van 45 min of langer</span><h2 id="h-ef">Aerobe efficiëntie</h2>
+  <p class="lede">Vermogen gedeeld door hartslag op rustige, steady ritten (onder 80% van je FTP), mediaan per maand. Stijgt de lijn, dan lever je meer watt bij dezelfde hartslag: je aerobe motor wordt beter. Binnen ligt je hartslag meestal hoger door warmte, daarom staan binnen en buiten apart.</p></div>
+  <div class="panel" style="display:flex;flex-direction:column;gap:12px">
+    <div class="legend"><span><i class="sw line" style="background:var(--indoor)"></i>Binnen</span><span><i class="sw line" style="background:var(--road)"></i>Buiten</span></div>
+    <div class="chart" id="efChart"></div>
   </div>
 </section>
 
@@ -338,6 +374,99 @@ function drawCurve(){
 }
 seg('cu',v=>{cu=v;drawCurve()});
 
+/* ---------- garmin: helpers ---------- */
+const teCell=te=>{if(!te||te[0]==null)return '<span class="cold">–</span>';const a=te[0];return `<span class="te ${a>=4?'hi':a>=3?'mid':''}" title="Aeroob ${c1(a)} · anaeroob ${c1(te[1])}"><b>${c1(a)}</b><span class="a2">/ ${c1(te[1])}</span></span>`};
+
+/* ---------- herstel ---------- */
+function drawRecovery(){
+  const G=D.garmin;if(!G||!G.recovery){return}
+  $('#secRec').hidden=false;
+  const S=G.summary;
+  if(S.last_day)$('#recEyebrow').textContent=`Garmin · laatste meting ${dlabel(S.last_day)}`;
+  const dr=S.rhr7!=null&&S.rhr60!=null?S.rhr7-S.rhr60:null;
+  const rchip=dr==null?null:dr>=3?['bad','Verhoogd']:dr>=1.5?['warn','Iets hoger']:dr<=-1.5?['good','Lager dan normaal']:['good','Normaal'];
+  const schip=S.sleep7==null?null:S.sleep7<6.5?['bad','Te kort']:S.sleep7<7.2?['warn','Krap']:['good','Goed'];
+  const tiles=[
+   {k:'Rusthartslag, 7 dagen',v:S.rhr7!=null?c1(S.rhr7):'–',u:'bpm',chip:rchip,s:`gemiddeld 60 dagen: ${S.rhr60!=null?c1(S.rhr60):'–'}`},
+   {k:'Slaap, 7 nachten',v:S.sleep7!=null?c1(S.sleep7):'–',u:'u',chip:schip,s:`gemiddeld 60 nachten: ${S.sleep60!=null?c1(S.sleep60):'–'} u`},
+   {k:'Diepe slaap, 7 nachten',v:S.deep7!=null?Math.round(S.deep7):'–',u:'min',s:'gemiddeld per nacht'},
+   {k:'Stress overdag',v:S.stress7!=null?Math.round(S.stress7):'–',u:'/100',s:`gemiddeld 60 dagen: ${S.stress60!=null?Math.round(S.stress60):'–'}`},
+  ];
+  $('#recTiles').innerHTML=tiles.map(t=>`<div class="tile"><span class="k">${t.k}</span><span class="v">${t.v}<small>${t.u}</small></span>${t.chip?`<span class="chip ${t.chip[0]}">${t.chip[1]}</span>`:''}<span class="s">${t.s}</span></div>`).join('');
+  const tsb=D.pmc[D.pmc.length-1][3];
+  const flags=[];if(dr!=null&&dr>=3)flags.push('je rusthartslag ligt duidelijk hoger dan normaal');if(S.sleep7!=null&&S.sleep7<6.5)flags.push('je slaapt korter dan 6,5 uur');if(tsb<-15)flags.push('je vorm is flink negatief');
+  $('#recVerdict').innerHTML=flags.length?`<strong>Neem het rustiger.</strong> ${flags.join(', ').replace(/^./,c=>c.toUpperCase())}.`:tsb>5?`<strong>Klaar voor een zware training of wedstrijd.</strong> Je herstelsignalen zijn normaal en je vorm is positief (+${c1(tsb)}).`:`<strong>Herstel ziet er normaal uit.</strong> Rusthartslag en slaap zitten op je gebruikelijke niveau; je vorm staat op ${tsb>0?'+':''}${c1(tsb)}.`;
+  const R=G.recovery;
+  // rusthartslag
+  (function(){const box=$('#rhrChart');box.innerHTML='';const vals=R.map(r=>r.rhr).filter(Boolean);if(!vals.length){box.innerHTML='<p class="muted">Nog geen rusthartslag.</p>';return}
+    const W=Math.max(320,box.clientWidth),H=Math.round(Math.min(220,Math.max(160,W*.2)));const m={l:40,r:12,t:10,b:22};
+    const lo=Math.floor((Math.min(...vals)-2)/2)*2,hi=Math.ceil((Math.max(...vals)+2)/2)*2;
+    const x=i=>m.l+(W-m.l-m.r)*i/(R.length-1),y=v=>m.t+(H-m.t-m.b)*(1-(v-lo)/(hi-lo));
+    const s=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'Rusthartslag per dag'},box);
+    const step=hi-lo>12?4:2;for(let v=lo;v<=hi;v+=step){el('line',{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v),stroke:css('--grid')},s);txt(s,{x:m.l-6,y:y(v)+4,'text-anchor':'end'},v)}
+    R.forEach((r,i)=>{if(r.d.endsWith('-01')){el('line',{x1:x(i),x2:x(i),y1:m.t,y2:H-m.b,stroke:css('--grid')},s);const [Y,Mo]=r.d.split('-');txt(s,{x:x(i)+3,y:H-6},MONTHS[Mo-1])}});
+    let d='';R.forEach((r,i)=>{if(r.rhr)d+=(d&&R[i-1]&&R[i-1].rhr?'L':'M')+x(i).toFixed(1)+' '+y(r.rhr).toFixed(1)});
+    el('path',{d,fill:'none',stroke:css('--bad'),'stroke-width':1.5,'stroke-opacity':.75},s);
+    let d7='';R.forEach((r,i)=>{const w=R.slice(Math.max(0,i-6),i+1).map(q=>q.rhr).filter(Boolean);if(w.length>=4){const a=w.reduce((p,c)=>p+c,0)/w.length;d7+=(d7?'L':'M')+x(i).toFixed(1)+' '+y(a).toFixed(1)}});
+    el('path',{d:d7,fill:'none',stroke:css('--ink-3'),'stroke-width':2.25},s);
+    R.forEach((r,i)=>{const hit=el('rect',{x:x(i)-(W/R.length)/2,y:m.t,width:W/R.length,height:H-m.t-m.b,fill:'transparent'},s);
+      hit.addEventListener('pointermove',ev=>showTip(`<div class="muted">${dlabel(r.d)}</div><div class="row"><span>Rusthartslag</span><b>${r.rhr??'–'}</b></div><div class="row"><span>Slaap</span><b>${r.sleep!=null?c1(r.sleep)+' u':'–'}</b></div><div class="row"><span>Stress</span><b>${r.stress??'–'}</b></div>`,ev));hit.addEventListener('pointerleave',hideTip)});
+  })();
+  // slaap
+  (function(){const box=$('#sleepChart');box.innerHTML='';if(!R.some(r=>r.sleep))return;
+    const W=Math.max(320,box.clientWidth),H=Math.round(Math.min(180,Math.max(130,W*.16)));const m={l:40,r:12,t:8,b:22};
+    const ymax=Math.max(10,Math.ceil(Math.max(...R.map(r=>r.sleep||0))));const step=(W-m.l-m.r)/R.length,bw=Math.max(1.5,step-1.5);
+    const y=v=>m.t+(H-m.t-m.b)*(1-v/ymax);
+    const s=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'Slaap per nacht'},box);
+    [0,4,8].forEach(v=>{if(v>ymax)return;el('line',{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v),stroke:css('--grid')},s);txt(s,{x:m.l-6,y:y(v)+4,'text-anchor':'end'},v+' u')});
+    el('line',{x1:m.l,x2:W-m.r,y1:y(7),y2:y(7),stroke:css('--ink-3'),'stroke-dasharray':'4 4'},s);txt(s,{x:W-m.r,y:y(7)-4,'text-anchor':'end'},'7 u');
+    R.forEach((r,i)=>{if(!r.sleep)return;const x0=m.l+i*step;const deep=(r.deep||0)/60,rem=(r.rem||0)/60,light=Math.max(0,r.sleep-deep-rem);let acc=0;
+      [[deep,'--road'],[rem,'--indoor'],[light,'--grid']].forEach(([v,c])=>{if(v<=0)return;el('rect',{x:x0,y:y(acc+v),width:bw,height:Math.max(0,y(acc)-y(acc+v)-(v>0.2?1:0)),fill:css(c)},s);acc+=v});
+      if(r.d.endsWith('-01')){const [Y,Mo]=r.d.split('-');txt(s,{x:x0,y:H-6},MONTHS[Mo-1])}
+      const hit=el('rect',{x:x0,y:m.t,width:step,height:H-m.t-m.b,fill:'transparent'},s);
+      hit.addEventListener('pointermove',ev=>showTip(`<div class="muted">nacht naar ${dlabel(r.d)}</div><div class="row"><span>Totaal</span><b>${c1(r.sleep)} u</b></div><div class="row"><span>Diep</span><b>${r.deep??'–'} min</b></div><div class="row"><span>REM</span><b>${r.rem??'–'} min</b></div>`,ev));hit.addEventListener('pointerleave',hideTip)});
+  })();
+  const RM=G.rhr_months||[];if(RM.length>=6){const a=RM[0],b=RM[RM.length-1];const MM=s=>{const [y,mo]=s.split('-');return `${MONTHS[mo-1]} ${y}`};$('#rhrLong').textContent=`Langetermijn: je rusthartslag was ${c1(a.rhr)} in ${MM(a.m)} en is nu ${c1(b.rhr)} (mediaan per maand). ${b.rhr<a.rhr-1?'Een dalende rusthartslag hoort bij een betere conditie.':b.rhr>a.rhr+1?'Iets hoger dan toen; let op herstel en slaap.':'Stabiel.'}`}
+}
+
+/* ---------- zones ---------- */
+const ZC=['--zone1','--zone2','--zone3','--zone4','--zone5'];
+const ZN=['Zone 1 · herstel','Zone 2 · duur','Zone 3 · tempo','Zone 4 · drempel','Zone 5 · VO2max'];
+function drawZones(){
+  const G=D.garmin;if(!G||!G.zones||!G.zones.some(z=>z.h.some(v=>v>0)))return;
+  $('#secZones').hidden=false;
+  $('#zoneLegend').innerHTML=ZN.map((n,i)=>`<span><i class="sw" style="background:var(${ZC[i]})"></i>${n}</span>`).join('');
+  const Z=G.zones;const tot=Z.reduce((a,z)=>a.map((v,i)=>v+z.h[i]),[0,0,0,0,0]);const sum=tot.reduce((a,b)=>a+b,0);
+  if(sum>0){const pct=tot.map(v=>Math.round(100*v/sum));$('#zonesLede').textContent=`Uren per week in elke zone. Over de laatste 26 weken zat je ${pct[0]+pct[1]}% van je fietstijd in zone 1 en 2, ${pct[2]}% in zone 3 en ${pct[3]+pct[4]}% in zone 4 en 5.${pct[2]>25?' Dat is veel tempo: rustige ritten mogen rustiger, harde ritten harder.':' Een goede verdeling voor een duuropbouw.'}`}
+  const box=$('#zoneChart');box.innerHTML='';
+  const W=Math.max(320,box.clientWidth),H=Math.round(Math.min(260,Math.max(190,W*.25)));const m={l:36,r:8,t:10,b:24};
+  const ymax=niceMax(Math.max(...Z.map(z=>z.h.reduce((a,b)=>a+b,0))),2);const step=(W-m.l-m.r)/Z.length,bw=Math.max(3,step-3);const y=v=>m.t+(H-m.t-m.b)*(1-v/ymax);
+  const s=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'Uren per hartslagzone per week'},box);
+  for(let v=0;v<=ymax;v+=ymax>10?4:2){el('line',{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v),stroke:css('--grid')},s);txt(s,{x:m.l-6,y:y(v)+4,'text-anchor':'end'},v+' u')}
+  Z.forEach((z,i)=>{const x0=m.l+i*step+1.5;let acc=0;const segs=z.h.map((v,j)=>[v,j]).filter(([v])=>v>0);
+    segs.forEach(([v,j],k)=>{const yy=y(acc+v),h=y(acc)-yy;if(k===segs.length-1){const r=Math.min(3,bw/2,h);el('path',{d:`M${x0} ${y(acc)}V${yy+r}q0 ${-r} ${r} ${-r}h${bw-2*r}q${r} 0 ${r} ${r}V${y(acc)}Z`,fill:css(ZC[j])},s)}else el('rect',{x:x0,y:yy,width:bw,height:Math.max(0,h-(h>3?1.5:0)),fill:css(ZC[j])},s);acc+=v});
+    const [Y,Mo,Dd]=z.start.split('-');if(+Dd<=7)txt(s,{x:x0,y:H-6},MONTHS[Mo-1]);
+    const hit=el('rect',{x:m.l+i*step,y:m.t,width:step,height:H-m.t-m.b,fill:'transparent'},s);
+    hit.addEventListener('pointermove',ev=>showTip(`<div class="muted">week van ${dlabel(z.start)}</div>`+z.h.map((v,j)=>`<div class="row"><span>${ZN[j]}</span><b>${hm(v*60)}</b></div>`).join(''),ev));hit.addEventListener('pointerleave',hideTip)});
+}
+
+/* ---------- aerobe efficiëntie ---------- */
+function drawEf(){
+  const E=(D.efficiency||[]).filter(r=>r.binnen!=null||r.buiten!=null);if(E.length<3)return;
+  $('#secEf').hidden=false;
+  const box=$('#efChart');box.innerHTML='';
+  const W=Math.max(320,box.clientWidth),H=Math.round(Math.min(260,Math.max(190,W*.26)));const m={l:44,r:16,t:14,b:26};
+  const vals=E.flatMap(r=>[r.binnen,r.buiten]).filter(v=>v!=null);const lo=Math.floor((Math.min(...vals)-.05)*10)/10,hi=Math.ceil((Math.max(...vals)+.05)*10)/10;
+  const x=i=>m.l+(W-m.l-m.r)*i/(E.length-1),y=v=>m.t+(H-m.t-m.b)*(1-(v-lo)/(hi-lo));
+  const s=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'Aerobe efficiëntie per maand'},box);
+  for(let v=lo;v<=hi+1e-9;v+=.1){el('line',{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v),stroke:css('--grid')},s);txt(s,{x:m.l-6,y:y(v)+4,'text-anchor':'end'},c1(v,1))}
+  E.forEach((r,i)=>{if(r.m.endsWith('-01')||i===0)txt(s,{x:x(i),y:H-8,'text-anchor':i===0?'start':'middle'},r.m.slice(0,4))});
+  [['binnen','--indoor'],['buiten','--road']].forEach(([k,c])=>{let d='';E.forEach((r,i)=>{if(r[k]!=null)d+=(d?'L':'M')+x(i).toFixed(1)+' '+y(r[k]).toFixed(1)});el('path',{d,fill:'none',stroke:css(c),'stroke-width':2},s);
+    E.forEach((r,i)=>{if(r[k]!=null)el('circle',{cx:x(i),cy:y(r[k]),r:3,fill:css(c),stroke:css('--panel'),'stroke-width':1.5},s)})});
+  E.forEach((r,i)=>{const hit=el('rect',{x:x(i)-(W/E.length)/2,y:m.t,width:W/E.length,height:H-m.t-m.b,fill:'transparent'},s);
+    hit.addEventListener('pointermove',ev=>{const [Y,Mo]=r.m.split('-');showTip(`<div class="muted">${MONTHS[Mo-1]} ${Y}</div><div class="row"><span>Binnen</span><b>${r.binnen!=null?c1(r.binnen,2)+' W/slag':'–'}</b></div><div class="row"><span>Buiten</span><b>${r.buiten!=null?c1(r.buiten,2)+' W/slag':'–'}</b></div><div class="row"><span>Ritten</span><b>${r.binnen_n+r.buiten_n}</b></div>`,ev)});hit.addEventListener('pointerleave',hideTip)});
+}
+
 /* ---------- rittenlijst ---------- */
 let rf='all',rshow=20;
 function drawRides(){
@@ -346,7 +475,7 @@ function drawRides(){
   const vis=sel.slice(0,rshow);
   const KIND={binnen:['Binnen','--indoor'],weg:['Weg','--road'],gravel:['Gravel','--gravel']};
   $('#ridesNote').textContent=`${sel.length} ${rf==='race'?'races':'ritten'} · ${vis.length} getoond`;
-  $('#rides').innerHTML=`<thead><tr><th>Datum</th><th>Rit</th><th>Soort</th><th>Km</th><th>Tijd</th><th>Hm</th><th>Gem. W</th><th>NP</th><th>W/kg</th><th>Belasting</th><th>Hartslag</th></tr></thead><tbody>${vis.length?vis.map(r=>{const [lab,c]=KIND[r.k]||KIND.weg;return `<tr><td>${dlabel(r.d)}</td><td class="rname" title="${esc(r.name)}">${r.cat?`<span class="plate ${r.cat}" style="margin-right:6px">${r.cat}</span>`:''}${strava(r.id,esc(r.name)||'–')}</td><td><span class="kind"><i style="background:var(${c})"></i>${r.race?'Race':lab}</span></td><td>${c1(r.km)}</td><td>${hm(r.min)}</td><td>${fmt(r.el)}</td><td>${r.avg??'–'}</td><td>${r.np?`<span class="np">${r.np}</span>`:'<span class="cold">–</span>'}</td><td>${r.avg?c1(r.avg/KG,2):'–'}</td><td>${r.tss}</td><td>${r.hr??'–'}</td></tr>`}).join(''):'<tr><td colspan="11" class="muted">Geen ritten in deze selectie.</td></tr>'}</tbody>`;
+  $('#rides').innerHTML=`<thead><tr><th>Datum</th><th>Rit</th><th>Soort</th><th>Km</th><th>Tijd</th><th>Hm</th><th>Gem. W</th><th>NP</th><th>W/kg</th><th>Belasting</th><th>Hartslag</th><th title="Garmin trainingseffect aeroob / anaeroob">TE</th></tr></thead><tbody>${vis.length?vis.map(r=>{const [lab,c]=KIND[r.k]||KIND.weg;return `<tr><td>${dlabel(r.d)}</td><td class="rname" title="${esc(r.name)}">${r.cat?`<span class="plate ${r.cat}" style="margin-right:6px">${r.cat}</span>`:''}${strava(r.id,esc(r.name)||'–')}</td><td><span class="kind"><i style="background:var(${c})"></i>${r.race?'Race':lab}</span></td><td>${c1(r.km)}</td><td>${hm(r.min)}</td><td>${fmt(r.el)}</td><td>${r.avg??'–'}</td><td>${r.np?`<span class="np">${r.np}</span>`:'<span class="cold">–</span>'}</td><td>${r.avg?c1(r.avg/KG,2):'–'}</td><td>${r.tss}</td><td>${r.hr??'–'}</td><td>${teCell(r.te)}</td></tr>`}).join(''):'<tr><td colspan="12" class="muted">Geen ritten in deze selectie.</td></tr>'}</tbody>`;
   $('#ridesMore').hidden=sel.length<=rshow;
 }
 seg('f',v=>{rf=v;rshow=20;drawRides()});
@@ -463,7 +592,7 @@ function drawPW(){
 /* ---------- lange ritten ---------- */
 $('#long').innerHTML=`<thead><tr><th>Datum</th><th>Rit</th><th>Km</th><th>Hoogtemeters</th><th>Rijtijd</th><th>Km/u</th><th>Gem. W</th><th>Belasting</th></tr></thead><tbody>${[...D.events].sort((a,b)=>b.km-a.km).map(e=>`<tr><td>${dlabel(e.d)}</td><td class="name" style="text-align:left">${strava(e.id,esc(e.name)||'–')}${e.t==='gravel'?' <span class="chip neutral" style="font-size:.7rem;padding:0 6px;color:var(--gravel)">gravel</span>':''}</td><td>${c1(e.km)}</td><td>${fmt(e.el)}</td><td>${hm(e.min)}</td><td>${c1(e.kmh)}</td><td>${e.pw??'–'}</td><td>${e.tss}</td></tr>`).join('')}</tbody>`;
 
-function drawAll(){drawCurve();drawPMC();drawVol();drawPW()}
+function drawAll(){drawCurve();drawPMC();drawVol();drawPW();drawRecovery();drawZones();drawEf()}
 drawAll();drawRides();drawRaces();drawYears();
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawAll,150)});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
