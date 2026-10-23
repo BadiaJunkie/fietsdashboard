@@ -38,6 +38,11 @@ jobs:
           STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
         run: python scripts/fetch_strava.py
 
+      - name: Garmin ophalen
+        env:
+          GARMIN_PERSONAL_API_KEY: ${{ secrets.GARMIN_PERSONAL_API_KEY }}
+        run: python scripts/fetch_garmin.py
+
       - name: Cijfers berekenen
         run: python scripts/build_data.py
 
