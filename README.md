@@ -83,6 +83,20 @@ Zodra de DNS-check groen is (soms een paar uur), vink **Enforce HTTPS** aan.
 Tip: bevestig het domein ook onder je GitHub-profiel (**Settings → Pages → Add a domain**).
 Dan kan niemand anders verploegen.eu aan een eigen GitHub-site koppelen.
 
+## Garmin (optioneel)
+
+Herstel (rusthartslag, slaap, stress), tijd per hartslagzone en het trainingseffect per rit komen
+uit de officiële Garmin Connect Personal API.
+
+1. Maak een sleutel aan op https://connect.garmin.com/app/settings/personalApiToken
+   (**Create Key**, kies de langste geldigheid, kopieer hem meteen: hij wordt maar één keer getoond).
+2. Zet hem in GitHub als secret `GARMIN_PERSONAL_API_KEY`.
+3. Start **Actions → Dashboard bijwerken → Run workflow**.
+
+De eerste runs halen je Garmin-geschiedenis in blokken binnen. Verloopt de sleutel, dan meldt de run
+een waarschuwing en blijft de laatst bekende Garmin-data staan; maak dan een nieuwe sleutel aan.
+HRV en Body Battery verschijnen vanzelf zodra je horloge die meet (de Fenix 5X doet dat niet).
+
 ## Samen met Home Assistant
 
 - Het dashboard en ha_strava delen de limiet van de app (100 verzoeken per kwartier, 1000 per dag).
