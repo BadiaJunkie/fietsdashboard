@@ -51,7 +51,7 @@ def load_rides():
         power = json.loads(p.read_text()) if p.exists() else {}
         avg_w = a.get("average_watts") or ((a.get("kilojoules") or 0) * 1000 / (mins * 60) if mins else 0)
         rides.append(dict(
-            id=a["id"], d=d, name=(a.get("name") or "").strip(), k=kind(a), km=km, min=mins,
+            id=a["id"], d=d, start=datetime.fromisoformat(a["start_date_local"][:19]), name=(a.get("name") or "").strip(), k=kind(a), km=km, min=mins,
             el=a.get("total_elevation_gain") or 0, kj=a.get("kilojoules") or 0,
             avg=avg_w or 0, np=power.get("np") or a.get("weighted_average_watts"),
             meter=bool(a.get("device_watts")), hr=a.get("average_heartrate"), hrm=a.get("max_heartrate"),
@@ -82,8 +82,110 @@ def best_of(sel):
     return out
 
 
+def iso_week(d):
+    y, w, _ = d.isocalendar()
+    return f"{y}-W{w:02d}"
+
+
+def load_garmin(rides, today):
+    """Koppelt Garmin-activiteiten aan Strava-ritten en bouwt herstel- en zonedata."""
+    gdir = DATA / "garmin"
+    acts = json.loads((gdir / "activities.json").read_text()) if (gdir / "activities.json").exists() else []
+    store = json.loads((gdir / "daily.json").read_text()) if (gdir / "daily.json").exists() else {}
+    days = store.get("days", {})
+    if not acts and not days:
+        return None
+
+    # 1. trainingseffect koppelen: per Garmin-activiteit de Strava-rit met de meeste overlap
+    for g in acts:
+        try:
+            gs = datetime.fromisoformat(g["startTimeLocal"].replace(" ", "T")[:19])
+        except (KeyError, ValueError):
+            continue
+        ge = gs + timedelta(seconds=g.get("duration") or 0)
+        best, best_ov = None, 0
+        for r in rides:
+            if abs((r["start"] - gs).total_seconds()) > 6 * 3600:
+                continue
+            re_ = r["start"] + timedelta(minutes=r["min"])
+            ov = (min(ge, re_) - max(gs, r["start"])).total_seconds()
+            if ov > best_ov:
+                best, best_ov = r, ov
+        if best and best_ov >= 0.3 * min(g.get("duration") or 1, best["min"] * 60):
+            best["te"] = [g.get("aerobicTrainingEffect"), g.get("anaerobicTrainingEffect")]
+            best["gtss"] = g.get("trainingStressScore")
+
+    # 2. tijd per hartslagzone per week (laatste 26 weken)
+    weeks = defaultdict(lambda: [0.0] * 5)
+    first = today - timedelta(weeks=26)
+    for g in acts:
+        try:
+            gd = date.fromisoformat(g["startTimeLocal"][:10])
+        except (KeyError, ValueError):
+            continue
+        if gd < first:
+            continue
+        for i, s in enumerate(g.get("hrZones") or []):
+            weeks[iso_week(gd)][i] += s / 3600
+    zones = []
+    d = first - timedelta(days=first.weekday())
+    while d <= today:
+        k = iso_week(d)
+        zones.append(dict(w=k, start=d.isoformat(), h=[round(x, 2) for x in weeks.get(k, [0] * 5)]))
+        d += timedelta(weeks=1)
+
+    # 3. herstel per dag (laatste 120 dagen) met 7-daags gemiddelde rusthartslag
+    rec = []
+    for i in range(119, -1, -1):
+        k = (today - timedelta(days=i)).isoformat()
+        v = days.get(k, {})
+        rec.append(dict(d=k, rhr=v.get("rhr"), sleep=v.get("sleep_h"), deep=v.get("deep_min"),
+                        rem=v.get("rem_min"), stress=v.get("stress"), steps=v.get("steps")))
+
+    def avg(key, a, b):
+        vals = [x[key] for x in rec[a:b] if x.get(key)]
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    summary = dict(
+        rhr7=avg("rhr", -7, None), rhr60=avg("rhr", -60, None),
+        sleep7=avg("sleep", -7, None), sleep60=avg("sleep", -60, None),
+        deep7=avg("deep", -7, None), stress7=avg("stress", -7, None), stress60=avg("stress", -60, None),
+        last_day=max((k for k, v in days.items() if v.get("rhr") or v.get("sleep_h")), default=None),
+    )
+    # langetermijn rusthartslag per maand
+    rhr_m = defaultdict(list)
+    for k, v in days.items():
+        if v.get("rhr"):
+            rhr_m[k[:7]].append(v["rhr"])
+    rhr_months = [dict(m=m, rhr=round(st.median(v), 1)) for m, v in sorted(rhr_m.items()) if len(v) >= 7]
+    return dict(recovery=rec, summary=summary, zones=zones, rhr_months=rhr_months,
+                activities=len(acts))
+
+
+def efficiency(rides):
+    """Aerobe efficiëntie: NP per hartslag op rustige, steady ritten, mediaan per maand."""
+    m = defaultdict(lambda: {"binnen": [], "buiten": []})
+    for r in rides:
+        if not r["hr"] or r["hr"] < 90 or r["min"] < 45:
+            continue
+        p = r["np"] or r["avg"]
+        if not p or p / FTP > 0.80 or p / FTP < 0.50:
+            continue
+        m[r["d"].strftime("%Y-%m")]["binnen" if r["k"] == "binnen" else "buiten"].append(p / r["hr"])
+    out = []
+    for k in sorted(m):
+        row = dict(m=k)
+        for s in ("binnen", "buiten"):
+            v = m[k][s]
+            row[s] = round(st.median(v), 3) if len(v) >= 3 else None
+            row[s + "_n"] = len(v)
+        out.append(row)
+    return out
+
+
 def main():
     rides = load_rides()
+    garmin = load_garmin(rides, date.today())
     today = date.today()
     start = date.fromisoformat(CONFIG["since"])
     days = (today - start).days + 1
@@ -182,6 +284,7 @@ def main():
             el=round(r["el"]), avg=round(r["avg"]) if r["avg"] else None,
             np=round(r["np"]) if r["np"] else None, tss=round(r["tss"]),
             hr=round(r["hr"]) if r["hr"] else None,
+            te=r.get("te"),
         ))
 
     # lange ritten buiten en terugkerende routes
@@ -210,14 +313,15 @@ def main():
         name=CONFIG["name"], ftp=FTP, weight=KG, manual=CONFIG.get("manual", {}), strava_athlete=athlete,
         nrides=len(rides), pmc=pmc, peaks=peaks, months=months, years=years,
         l12m=agg(l12), p12m=agg(p12), power=power, qtrend=qtrend, races=races, recent=recent,
-        events=long_, classics=classics[:8],
+        events=long_, classics=classics[:8], garmin=garmin, efficiency=efficiency(rides),
         last_ride=rides[-1]["d"].isoformat() if rides else None,
     )
     site = ROOT / "site"
     site.mkdir(exist_ok=True)
     (site / "data.json").write_text(json.dumps(out, separators=(",", ":"), ensure_ascii=False))
     print(f"data.json geschreven: {len(rides)} ritten, {len(races)} races, "
-          f"{power['coverage']['analysed']}/{power['coverage']['with_meter']} ritten met vermogensanalyse")
+          f"{power['coverage']['analysed']}/{power['coverage']['with_meter']} ritten met vermogensanalyse"
+          + (f", Garmin: {garmin['activities']} activiteiten" if garmin else ", geen Garmin-data"))
 
 
 if __name__ == "__main__":
