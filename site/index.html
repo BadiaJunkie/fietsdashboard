@@ -16,7 +16,7 @@
   --ctl:#2a78d6; --atl:#eb6834; --tsb-pos:#1baf7a; --tsb-neg:#e34948;
   --hero:#0f1720; --hero-2:#16212d; --hero-ink:#eef3f7; --hero-ink-2:#9fb0c0; --hero-rule:#25323f; --hero-acc:#3fc1a8;
  --zone1:#9ec5f4; --zone2:#2a78d6; --zone3:#eda100; --zone4:#eb6834; --zone5:#d9363e;
-  --cat-a:#d9363e; --cat-b:#2f9a4c; --cat-c:#2a78d6; --cat-d:#d79a00;
+  --cat-ap:#8f5bd6; --cat-a:#d9363e; --cat-b:#2f9a4c; --cat-c:#2a78d6; --cat-d:#d79a00;
   --good:#1a7f4b; --warn:#a86a00; --bad:#c23b3a;
   --f-display:"Saira Semi Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -103,6 +103,15 @@ a.act:hover .ext{color:var(--accent)}
 .te{display:inline-flex;gap:4px;align-items:baseline}
 .te b{font-weight:500}.te .a2{color:var(--ink-3);font-size:.85em}
 .te.hi b{color:var(--bad)}.te.mid b{color:var(--warn)}
+.gauges{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;border-top:1px solid var(--hero-rule);padding-top:14px}
+.gauge{margin:0;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.gauge svg{width:100%;max-width:230px;height:auto;display:block;overflow:visible}
+.gauge .gl{font-family:var(--f-data);font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;color:var(--hero-ink-2);text-align:center}
+.gauge .gs{font-size:.78rem;color:var(--hero-ink-2);text-align:center;line-height:1.35}
+.gauge .gs b{color:var(--hero-ink);font-weight:600}
+.gauge svg text{font-family:var(--f-data)}
+.gauge .gl{margin-bottom:-2px}
+@media (max-width:420px){.gauges{grid-template-columns:1fr}}
 /* now */
 .now{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
 .tile{background:var(--panel);padding:16px 18px;display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -174,6 +183,7 @@ tr.cur td{background:color-mix(in srgb,var(--accent) 8%,transparent)}
     <div class="sec-head"><span class="eyebrow" style="color:var(--hero-ink-2)">Beste vermogen, laatste 90 dagen</span><h2>Vermogensprofiel</h2></div>
     <div id="ppbars" style="display:flex;flex-direction:column;gap:8px"></div>
     <div class="zrs" id="zrsbox" hidden><div><div class="lab">Racing score</div><div class="big num" id="zrsNow"></div></div><div class="gain" id="zrsNote"></div></div>
+    <div class="gauges" id="gauges" hidden><figure class="gauge" id="gVo2"></figure><figure class="gauge" id="gZrs"></figure></div>
   </div>
 </header>
 
@@ -345,6 +355,69 @@ const P90=D.power.last90;
 const ppd=['15','60','300','1200'].filter(d=>P90[d]);
 $('#ppbars').innerHTML=ppd.length?ppd.map(d=>{const w=P90[d].w,wk=w/KG;return `<div class="pprow" title="${esc(P90[d].name)} · ${dlabel(P90[d].date)}"><span class="d">${DUR[d]}</span><span class="trk"><span class="fl" style="width:${Math.min(100,Math.round(100*wk/8))}%"></span><span class="wk">${c1(wk,2)} W/kg</span></span><span class="w">${w} <small>W</small></span></div>`}).join(''):`<p style="color:var(--hero-ink-2)">Nog geen vermogensdata geanalyseerd. Na de eerste runs verschijnt hier je profiel.</p>`;
 if(M.racing_score){$('#zrsbox').hidden=false;$('#zrsNow').textContent=M.racing_score;$('#zrsNote').textContent='handmatig bijgehouden'}
+/* ---------- meters ---------- */
+function gauge(box,{min,max,value,bands,ref,label,unit,fmtV,sub}){
+  const W=220,H=150,cx=110,cy=100,r=82,sw=10,uid=box.id;
+  const clamp=v=>Math.min(max,Math.max(min,v));
+  const frac=v=>(clamp(v)-min)/(max-min);
+  const ang=v=>Math.PI*(1-frac(v));
+  const pt=(v,rr)=>[cx+rr*Math.cos(ang(v)),cy-rr*Math.sin(ang(v))];
+  const arc=(a,b,rr)=>{const [x1,y1]=pt(a,rr),[x2,y2]=pt(b,rr);return `M${x1.toFixed(2)} ${y1.toFixed(2)}A${rr} ${rr} 0 ${frac(b)-frac(a)>.5?1:0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`};
+  const ink=css('--hero-ink'),ink2=css('--hero-ink-2'),bg=css('--hero'),tr=css('--hero-2');
+  const act=bands.find(b=>value>=b.from&&value<b.to)||bands[bands.length-1];
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}: ${esc(fmtV(value))} ${esc(unit)}"><defs>
+    <filter id="${uid}glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <linearGradient id="${uid}nd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${ink}" stop-opacity=".55"/><stop offset="1" stop-color="${ink}"/></linearGradient></defs>`;
+  // spoor + gedimde banden
+  s+=`<path d="${arc(min,max,r)}" fill="none" stroke="${tr}" stroke-width="${sw+6}" stroke-linecap="round"/>`;
+  bands.forEach(b=>{const a=Math.max(min,b.from),e=Math.min(max,b.to);if(e>a)s+=`<path d="${arc(a,e,r)}" fill="none" stroke="${css(b.c)}" stroke-width="${sw}" stroke-opacity=".22"/>`});
+  // gevuld deel tot de waarde, per band in eigen kleur
+  bands.forEach(b=>{const a=Math.max(min,b.from),e=Math.min(max,b.to,value);if(e>a)s+=`<path class="gfill" d="${arc(a,e,r)}" fill="none" stroke="${css(b.c)}" stroke-width="${sw}" stroke-linecap="butt"/>`});
+  // ronde kop aan het eind van de vulling
+  const [ex,ey]=pt(value,r);s+=`<circle cx="${ex.toFixed(2)}" cy="${ey.toFixed(2)}" r="${sw/2}" fill="${css(act.c)}" filter="url(#${uid}glow)"/>`;
+  // streepjes
+  for(let i=0;i<=40;i++){const v=min+(max-min)*i/40,major=i%10===0,[x1,y1]=pt(v,r-sw/2-4),[x2,y2]=pt(v,r-sw/2-(major?11:7));s+=`<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${ink2}" stroke-opacity="${major?.7:.3}" stroke-width="${major?1.4:1}" stroke-linecap="round"/>`}
+  // referentie (schatting)
+  if(ref!=null){const [tx,ty]=pt(ref.v,r+sw/2+3),a=ang(ref.v),k=5,px=-Math.sin(a),py=-Math.cos(a);
+    const [ox,oy]=pt(ref.v,r+sw/2+10);
+    s+=`<path d="M${tx.toFixed(2)} ${ty.toFixed(2)}L${(ox+px*k).toFixed(2)} ${(oy+py*k).toFixed(2)}L${(ox-px*k).toFixed(2)} ${(oy-py*k).toFixed(2)}Z" fill="${ink2}"/>`;
+    const [lx,ly]=pt(ref.v,r+sw/2+20);s+=`<text x="${lx.toFixed(1)}" y="${(ly+3).toFixed(1)}" text-anchor="middle" font-size="9" fill="${ink2}">${esc(fmtV(ref.v))}</text>`}
+  // naald: taps, met contragewicht, draait rond het midden
+  const L=r-sw-8,deg=180*frac(value);
+  s+=`<g class="gneedle" style="transform-origin:${cx}px ${cy}px;transform:rotate(${deg}deg)">
+    <path d="M${cx-14} ${cy-2.6}L${cx+L} ${cy-.6}Q${cx+L+2} ${cy} ${cx+L} ${cy+.6}L${cx-14} ${cy+2.6}Q${cx-17} ${cy} ${cx-14} ${cy-2.6}Z" transform="rotate(180 ${cx} ${cy})" fill="url(#${uid}nd)"/>
+  </g><circle cx="${cx}" cy="${cy}" r="7.5" fill="${tr}" stroke="${ink}" stroke-width="2"/><circle cx="${cx}" cy="${cy}" r="2.5" fill="${css(act.c)}"/>`;
+  s+=`<text x="${cx-r}" y="${cy+20}" text-anchor="middle" font-size="9.5" fill="${ink2}">${min}</text><text x="${cx+r}" y="${cy+20}" text-anchor="middle" font-size="9.5" fill="${ink2}">${max}</text>`;
+  s+=`<text x="${cx}" y="${cy+36}" text-anchor="middle" font-size="28" font-weight="700" style="font-family:var(--f-display);font-variant-numeric:tabular-nums" fill="${ink}" class="gval">${esc(fmtV(value))}</text><text x="${cx}" y="${cy+49}" text-anchor="middle" font-size="9.5" letter-spacing=".06em" fill="${ink2}">${esc(unit)}</text></svg>`;
+  box.innerHTML=`<span class="gl">${esc(label)}</span>${s}<figcaption class="gs">${sub}</figcaption>`;
+  // binnenkomst: naald zwaait vanaf links naar de waarde
+  const g=box.querySelector('.gneedle');
+  if(g&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!box.dataset.done){
+    box.dataset.done='1';g.style.transition='none';g.style.transform='rotate(0deg)';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{g.style.transition='transform 1.2s cubic-bezier(.22,1.35,.36,1)';g.style.transform=`rotate(${deg}deg)`}));
+  }
+}
+function drawGauges(){
+  const M=D.manual||{};const p5=D.power.last90['300']&&D.power.last90['300'].w;
+  const est=p5?10.8*p5/KG+7:null;               // schatting uit beste 5 min (W/kg)
+  const vo2=M.vo2max||est;let shown=false;
+  if(vo2){shown=true;
+    const VB=[{from:25,to:35.6,c:'--bad',n:'Matig'},{from:35.6,to:39.2,c:'--warn',n:'Redelijk'},{from:39.2,to:43.4,c:'--cat-d',n:'Goed'},{from:43.4,to:48.9,c:'--cat-b',n:'Uitstekend'},{from:48.9,to:65,c:'--hero-acc',n:'Top'}];
+    const band=VB.find(b=>vo2>=b.from&&vo2<b.to)||VB[VB.length-1];
+    gauge($('#gVo2'),{min:25,max:65,value:vo2,bands:VB,ref:M.vo2max&&est?{v:est}:null,label:'VO2max',unit:'ml/kg/min',fmtV:v=>Math.round(v),
+      sub:`<b>${band.n}</b> voor mannen 50–59${M.vo2max?` · Garmin`:` · geschat`}${M.vo2max&&est?`<br>schatting uit vermogen: ${Math.round(est)} <span aria-hidden="true">(driehoekje)</span>`:''}`});
+  }
+  if(M.racing_score){shown=true;
+    const ZB=[{from:0,to:180,c:'--cat-d',n:'D'},{from:180,to:350,c:'--cat-c',n:'C'},{from:350,to:520,c:'--cat-b',n:'B'},{from:520,to:690,c:'--cat-a',n:'A'},{from:690,to:1000,c:'--cat-ap',n:'A+'}];
+    const z=M.racing_score,band=ZB.find(b=>z>=b.from&&z<b.to)||ZB[ZB.length-1];
+    const next=ZB[ZB.indexOf(band)+1];
+    gauge($('#gZrs'),{min:0,max:1000,value:z,bands:ZB,label:'Zwift Racing Score',unit:'ZRS',fmtV:v=>Math.round(v),
+      sub:`<b>Band ${band.from}–${band.to}</b> (${band.n})${next?`<br>nog ${next.from-z} tot ${next.from}`:''}`});
+  }
+  $('#gauges').hidden=!shown;
+}
+drawGauges();
+
 
 /* ---------- vermogenscurve ---------- */
 let cu='w';
